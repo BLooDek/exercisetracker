@@ -1,4 +1,4 @@
-function isValidYYYYMMDD(value) {
+const isValidYYYYMMDD = (value) => {
   if (typeof value !== "string") return false;
   const regex = /^\d{4}-\d{2}-\d{2}$/;
   if (!regex.test(value)) return false;
@@ -11,6 +11,6 @@ function isValidYYYYMMDD(value) {
     date.getUTCMonth() + 1 === month &&
     date.getUTCDate() === day
   );
-}
+};
 
 module.exports = { isValidYYYYMMDD };
