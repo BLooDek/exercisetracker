@@ -34,9 +34,9 @@ describe("genericErrorHandler", () => {
     genericErrorHandler(mockRes, error, message, statusCode);
 
     expect(consoleErrorSpy).toHaveBeenCalledWith("Error:", error);
-    expect(mockRes.status).toHaveBeenCalledWith(404);
+    expect(mockRes.status).toHaveBeenCalledWith(statusCode);
     expect(mockRes.json).toHaveBeenCalledWith({
-      error: "Something went wrong!",
+      error: message,
     });
   });
 
