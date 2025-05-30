@@ -2,25 +2,22 @@ const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const fs = require("fs");
 
-const DB_PATH = path.join(__dirname, "..", "data", "db.db");
-const dataDir = path.join(__dirname, "..", "data");
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
+let dbInstance = null;
+
 class Database {
-  constructor() {
-    this.db = new sqlite3.Database(DB_PATH, (err) => {
+  constructor(dbPath) {
+    this.db = new sqlite3.Database(dbPath, (err) => {
       if (err) {
         console.error("Could not connect to database", err);
       } else {
-        console.log("Connected to SQLite database");
+        console.log(`Connected to SQLite database at ${dbPath}`);
         this.db.run(
           `
-                    CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        username TEXT UNIQUE NOT NULL CHECK(username != '')
-                    )
-                `,
+          CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL CHECK(username != '')
+          )
+          `,
           (err) => {
             if (err) {
               console.error("Error creating users table", err);
@@ -74,6 +71,44 @@ class Database {
       });
     });
   }
+
+  close() {
+    return new Promise((resolve, reject) => {
+      this.db.close((err) => {
+        if (err) {
+          console.error("Error closing database", err);
+          reject(err);
+        } else {
+          console.log("Closed the database connection.");
+          resolve();
+        }
+      });
+    });
+  }
 }
 
-module.exports = new Database();
+const getDbPath = () => {
+  const dbFileName = process.env.NODE_ENV === "test" ? "test.db" : "dev.db";
+  const dataDir = path.join(__dirname, "..", "data");
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+  return path.join(dataDir, dbFileName);
+};
+
+const connectDB = () => {
+  if (!dbInstance) {
+    const dbPath = getDbPath();
+    dbInstance = new Database(dbPath);
+  }
+  return dbInstance;
+};
+
+const closeDB = async () => {
+  if (dbInstance) {
+    await dbInstance.close();
+    dbInstance = null;
+  }
+};
+
+module.exports = { connectDB, closeDB, getDb: () => dbInstance };

@@ -5,7 +5,8 @@ const {
 } = require("../data-transformations/handlers");
 
 exports.getAllUsers = (req, res) => {
-  db.all("SELECT id, username FROM users")
+  return db
+    .all("SELECT id, username FROM users")
     .then((users) =>
       users.length === 0
         ? res.status(404).json({ message: "No users found." })
@@ -23,7 +24,8 @@ exports.getUserById = (req, res) => {
     return res.status(400).json({ message: "Invalid user ID provided." });
   }
 
-  db.get("SELECT id, username FROM users WHERE id = ?", [id])
+  return db
+    .get("SELECT id, username FROM users WHERE id = ?", [id])
     .then((user) =>
       !user
         ? res.status(404).json({ message: `User with ID ${id} not found.` })
@@ -37,7 +39,8 @@ exports.getUserById = (req, res) => {
 exports.createUser = (req, res) => {
   const { username } = req.body;
 
-  db.run("INSERT INTO users (username) VALUES (?)", [username])
+  return db
+    .run("INSERT INTO users (username) VALUES (?)", [username])
     .then((result) => {
       res.status(201).json({
         message: "User created successfully.",
