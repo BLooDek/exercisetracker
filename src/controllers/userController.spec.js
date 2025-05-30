@@ -88,60 +88,14 @@ describe("getAllUsers", () => {
   });
 
   describe("getUserById", () => {
-    it("should return 400 for invalid user ID", async () => {
-      req.params = { id: "abc" };
-
-      await userController.getUserById(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        message: "Invalid user ID provided.",
-      });
-    });
-
-    it("should return user when user exists", async () => {
+    it("should return 200 and the user from req.user", async () => {
       const user = { id: 1, username: "testuser" };
-      req.params = { id: 1 };
-      mockDbInstance.get.mockResolvedValue(user);
+      req.user = user; // req.user is set by a preceding middleware
 
       await userController.getUserById(req, res);
 
-      expect(mockDbInstance.get).toHaveBeenCalledWith(
-        "SELECT id, username FROM users WHERE id = ?",
-        [1]
-      );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(user);
-    });
-
-    it("should return 404 when user not found", async () => {
-      req.params = { id: 999 };
-      mockDbInstance.get.mockResolvedValue(undefined);
-
-      await userController.getUserById(req, res);
-
-      expect(mockDbInstance.get).toHaveBeenCalledWith(
-        "SELECT id, username FROM users WHERE id = ?",
-        [999]
-      );
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({
-        message: "User with ID 999 not found.",
-      });
-    });
-
-    it("should call genericErrorHandler on db error", async () => {
-      const error = new Error("DB error for getUserById");
-      req.params = { id: 1 };
-      mockDbInstance.get.mockRejectedValue(error);
-
-      await userController.getUserById(req, res);
-
-      expect(genericErrorHandler).toHaveBeenCalledWith(
-        res,
-        error,
-        "Failed to retrieve user."
-      );
     });
   });
 
@@ -160,7 +114,6 @@ describe("getAllUsers", () => {
       );
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith({
-        message: "User created successfully.",
         id: mockResult.id,
         username: username,
       });
@@ -174,6 +127,128 @@ describe("getAllUsers", () => {
       await userController.createUser(req, res);
 
       expect(userErrorHandler).toHaveBeenCalledWith(error, res);
+    });
+  });
+
+  describe("addExercise", () => {
+    beforeEach(() => {
+      req.user = { id: 1 };
+    });
+
+    it("should add an exercise with a provided date and return 201", async () => {
+      const exerciseData = {
+        description: "running",
+        duration: 30,
+        formattedDate: "2023-01-01",
+      };
+      req.body = exerciseData;
+      const mockResult = { id: 101 };
+      mockDbInstance.run.mockResolvedValue(mockResult);
+
+      await userController.addExercise(req, res);
+
+      expect(mockDbInstance.run).toHaveBeenCalledWith(
+        "INSERT INTO exercises (user_id, description, duration, date) VALUES (?, ?, ?, ?)",
+        [
+          req.user.id,
+          exerciseData.description,
+          exerciseData.duration,
+          exerciseData.formattedDate,
+        ]
+      );
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith({
+        userId: req.user.id,
+        exerciseId: mockResult.id,
+        description: exerciseData.description,
+        duration: exerciseData.duration,
+        date: exerciseData.formattedDate,
+      });
+    });
+
+    it("should add an exercise without a provided date (current date used) and return 201", async () => {
+      const exerciseData = {
+        description: "lifting",
+        duration: 60,
+      };
+
+      const mockDate = "2024-05-30";
+      req.body = { ...exerciseData, formattedDate: mockDate };
+      const mockResult = { id: 102 };
+      mockDbInstance.run.mockResolvedValue(mockResult);
+
+      await userController.addExercise(req, res);
+
+      expect(mockDbInstance.run).toHaveBeenCalledWith(
+        "INSERT INTO exercises (user_id, description, duration, date) VALUES (?, ?, ?, ?)",
+        [req.user.id, exerciseData.description, exerciseData.duration, mockDate]
+      );
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith({
+        userId: req.user.id,
+        exerciseId: mockResult.id,
+        description: exerciseData.description,
+        duration: exerciseData.duration,
+        date: mockDate,
+      });
+    });
+
+    it("should call genericErrorHandler on db error", async () => {
+      const error = new Error("DB error for addExercise");
+      req.body = {
+        description: "swim",
+        duration: 45,
+        formattedDate: "2023-02-01",
+      };
+      mockDbInstance.run.mockRejectedValue(error);
+
+      await userController.addExercise(req, res);
+
+      expect(genericErrorHandler).toHaveBeenCalledWith(
+        res,
+        error,
+        "Failed to add exercise."
+      );
+    });
+  });
+
+  describe("getExerciseLog", () => {
+    beforeEach(() => {
+      req.user = { id: 1 };
+      req.params = { _id: 1 };
+    });
+
+    it("should return 400 if 'from' date is in invalid format", async () => {
+      req.query = { from: "invalid-date" };
+
+      await userController.getExerciseLog(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Invalid 'from' date format. Use YYYY-MM-DD.",
+      });
+    });
+
+    it("should return 400 if 'to' date is in invalid format", async () => {
+      req.query = { to: "another-invalid-date" };
+
+      await userController.getExerciseLog(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Invalid 'to' date format. Use YYYY-MM-DD.",
+      });
+    });
+
+    it("should return 400 if 'limit' is not a positive integer", async () => {
+      req.query = { limit: "abc" };
+
+      await userController.getExerciseLog(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Limit must be a positive integer.",
+      });
     });
   });
 });
