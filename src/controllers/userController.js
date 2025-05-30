@@ -6,13 +6,11 @@ const {
 
 exports.getAllUsers = (req, res) => {
   db.all("SELECT id, username FROM users")
-    .then((users) => {
-      if (users.length === 0) {
-        res.status(404).json({ message: "No users found." });
-      } else {
-        res.json(users);
-      }
-    })
+    .then((users) =>
+      users.length === 0
+        ? res.status(404).json({ message: "No users found." })
+        : res.json(users)
+    )
     .catch((error) => {
       genericErrorHandler(res, error, "Failed to retrieve users");
     });
@@ -26,14 +24,11 @@ exports.getUserById = (req, res) => {
   }
 
   db.get("SELECT id, username FROM users WHERE id = ?", [id])
-    .then((user) => {
-      if (!user) {
-        return res
-          .status(404)
-          .json({ message: `User with ID ${id} not found.` });
-      }
-      res.status(200).json(user);
-    })
+    .then((user) =>
+      !user
+        ? res.status(404).json({ message: `User with ID ${id} not found.` })
+        : res.status(200).json(user)
+    )
     .catch((error) => {
       genericErrorHandler(res, error, "Failed to retrieve user.");
     });
