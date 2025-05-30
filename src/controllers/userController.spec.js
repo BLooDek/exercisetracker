@@ -250,5 +250,68 @@ describe("getAllUsers", () => {
         message: "Limit must be a positive integer.",
       });
     });
+
+    it("should return exercise log with count when successful", async () => {
+      const mockCount = 2;
+      const mockExercises = [
+        { id: 1, description: "run", duration: 30, date: "2025-05-01" },
+        { id: 2, description: "walk", duration: 60, date: "2025-05-02" },
+      ];
+      mockDbInstance.get.mockResolvedValue({ "COUNT(*)": mockCount });
+      mockDbInstance.all.mockResolvedValue(mockExercises);
+
+      req.query = {};
+
+      await userController.getExerciseLog(req, res);
+
+      expect(mockDbInstance.get).toHaveBeenCalledWith(
+        "SELECT COUNT(*) FROM exercises WHERE user_id = ?",
+        [req.user.id]
+      );
+      expect(mockDbInstance.all).toHaveBeenCalledWith(
+        "SELECT id, description, duration, date FROM exercises WHERE user_id = ?",
+        [req.user.id]
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        count: mockCount,
+        log: [
+          { id: 1, description: "run", duration: 30, date: "2025-05-01" },
+          { id: 2, description: "walk", duration: 60, date: "2025-05-02" },
+        ],
+      });
+    });
+
+    it("should call genericErrorHandler if count query fails", async () => {
+      const error = new Error("Count DB error");
+      mockDbInstance.get.mockRejectedValue(error);
+
+      req.query = {};
+
+      await userController.getExerciseLog(req, res);
+
+      expect(genericErrorHandler).toHaveBeenCalledWith(
+        res,
+        error,
+        "Failed to count exercises."
+      );
+      expect(mockDbInstance.all).not.toHaveBeenCalled();
+    });
+
+    it("should call genericErrorHandler if exercise log query fails", async () => {
+      const error = new Error("Exercise log DB error");
+      mockDbInstance.get.mockResolvedValue({ "COUNT(*)": 5 });
+      mockDbInstance.all.mockRejectedValue(error);
+
+      req.query = {};
+
+      await userController.getExerciseLog(req, res);
+
+      expect(genericErrorHandler).toHaveBeenCalledWith(
+        res,
+        error,
+        "Failed to retrieve exercise log."
+      );
+    });
   });
 });

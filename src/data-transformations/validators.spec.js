@@ -1,4 +1,4 @@
-const { isValidYYYYMMDD } = require("./validators");
+const { isValidYYYYMMDD, isNull } = require("./validators");
 
 describe("isValidYYYYMMDD", () => {
   test("should return true for a valid YYYY-MM-DD date", () => {
@@ -33,5 +33,43 @@ describe("isValidYYYYMMDD", () => {
     expect(isValidYYYYMMDD(undefined)).toBe(false);
     expect(isValidYYYYMMDD({})).toBe(false);
     expect(isValidYYYYMMDD([])).toBe(false);
+  });
+});
+
+describe("isNull", () => {
+  test("should return true for null", () => {
+    expect(isNull(null)).toBe(true);
+  });
+
+  test("should return true for undefined", () => {
+    expect(isNull(undefined)).toBe(true);
+  });
+
+  test("should return false for 0", () => {
+    expect(isNull(0)).toBe(false);
+  });
+
+  test("should return false for an empty string", () => {
+    expect(isNull("")).toBe(false);
+  });
+
+  test("should return false for false", () => {
+    expect(isNull(false)).toBe(false);
+  });
+
+  test("should return false for a number", () => {
+    expect(isNull(123)).toBe(false);
+  });
+
+  test("should return false for a non-empty string", () => {
+    expect(isNull("hello")).toBe(false);
+  });
+
+  test("should return false for an object", () => {
+    expect(isNull({})).toBe(false);
+  });
+
+  test("should return false for an array", () => {
+    expect(isNull([])).toBe(false);
   });
 });

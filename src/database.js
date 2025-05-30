@@ -11,24 +11,24 @@ class Database {
         console.error("Could not connect to database", err);
       } else {
         console.log(`Connected to SQLite database at ${dbPath}`);
-        this.db.run(
-          `
+      }
+    });
+  }
+
+  async init() {
+    await this.run(
+      `
           CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL CHECK(username != '')
           )
-          `,
-          (err) => {
-            if (err) {
-              console.error("Error creating users table", err);
-            } else {
-              console.log("Users table created or already exists");
-            }
-          }
-        );
-
-        this.db.run(
           `
+    )
+      .then(() => console.log("Users table created or already exists"))
+      .catch((err) => console.error("Error creating users table", err));
+
+    await this.run(
+      `
           CREATE TABLE IF NOT EXISTS exercises (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -37,17 +37,10 @@ class Database {
             date TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(id)
           )
-          `,
-          (err) => {
-            if (err) {
-              console.error("Error creating exercises table", err);
-            } else {
-              console.log("Exercises table created or already exists");
-            }
-          }
-        );
-      }
-    });
+          `
+    )
+      .then(() => console.log("Exercises table created or already exists"))
+      .catch((err) => console.error("Error creating exercises table", err));
   }
 
   run(sql, params = []) {
@@ -116,10 +109,11 @@ const getDbPath = () => {
   return path.join(dataDir, dbFileName);
 };
 
-const connectDB = () => {
+const connectDB = async () => {
   if (!dbInstance) {
     const dbPath = getDbPath();
     dbInstance = new Database(dbPath);
+    await dbInstance.init(); // Initialize tables after connection
   }
   return dbInstance;
 };
