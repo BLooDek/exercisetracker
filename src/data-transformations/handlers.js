@@ -1,20 +1,32 @@
-exports.userErrorHandler = (err, res) => {
-  const errorCheck = [
-    {
-      check: (error) => error.message.includes("UNIQUE constraint failed"),
-      action: (response) =>
-        response.status(409).json({ error: "Username already exists." }),
-    },
-    {
-      check: (error) => error.message.includes("CHECK constraint failed"),
-      action: (response) =>
-        response.status(400).json({ error: "Username cannot be empty." }),
-    },
-    {
-      check: () => true,
-      action: (response) =>
-        response.status(500).json({ error: "Failed to create user." }),
-    },
-  ];
-  return errorCheck.find((errorItem) => errorItem.check(err)).action(res);
+const genericErrorHandler = (
+  res,
+  error,
+  message = "An unexpected error occurred.",
+  statusCode = 500
+) => {
+  console.error("Error:", error);
+  res.status(statusCode).json({ error: message });
 };
+
+const errorCheck = [
+  {
+    check: (err) => err.message.includes("UNIQUE constraint failed"),
+    action: (res, err) =>
+      genericErrorHandler(res, err, "Username already exists.", 409),
+  },
+  {
+    check: (err) => err.message.includes("CHECK constraint failed"),
+    action: (res, err) =>
+      genericErrorHandler(res, err, "Username cannot be empty.", 400),
+  },
+  {
+    check: () => true,
+    action: (res, err) =>
+      genericErrorHandler(res, err, "Failed to create user."),
+  },
+];
+
+exports.userErrorHandler = (err, res) =>
+  errorCheck.find((errorItem) => errorItem.check(err)).action(res, err);
+
+exports.genericErrorHandler;
