@@ -1,23 +1,36 @@
-const userController = require("./userController");
-const {
-  genericErrorHandler,
-  userErrorHandler,
-} = require("../data-transformations/handlers");
-const db = require("../database");
+let userController;
+let genericErrorHandler;
+let userErrorHandler;
+
+jest.mock("../database", () => {
+  const mockDb = {
+    all: jest.fn(),
+    get: jest.fn(),
+    run: jest.fn(),
+  };
+  return {
+    getDb: jest.fn(() => mockDb),
+    connectDB: jest.fn(),
+    closeDB: jest.fn(),
+  };
+});
 
 jest.mock("../data-transformations/handlers", () => ({
   genericErrorHandler: jest.fn(),
   userErrorHandler: jest.fn(),
 }));
 
-jest.mock("../database", () => ({
-  all: jest.fn(),
-  get: jest.fn(),
-  run: jest.fn(),
-}));
-
 describe("getAllUsers", () => {
   let req, res;
+  let mockDbInstance;
+
+  beforeAll(() => {
+    userController = require("./userController");
+    const handlers = require("../data-transformations/handlers");
+    genericErrorHandler = handlers.genericErrorHandler;
+    userErrorHandler = handlers.userErrorHandler;
+    mockDbInstance = require("../database").getDb();
+  });
 
   beforeEach(() => {
     req = {};
@@ -27,9 +40,9 @@ describe("getAllUsers", () => {
     };
     genericErrorHandler.mockClear();
     userErrorHandler.mockClear();
-    db.all.mockClear();
-    db.get.mockClear();
-    db.run.mockClear();
+    mockDbInstance.all.mockClear();
+    mockDbInstance.get.mockClear();
+    mockDbInstance.run.mockClear();
   });
 
   afterEach(() => {
@@ -41,17 +54,19 @@ describe("getAllUsers", () => {
       { id: 1, username: "alice" },
       { id: 2, username: "bob" },
     ];
-    db.all = jest.fn().mockResolvedValue(users);
+    mockDbInstance.all.mockResolvedValue(users);
 
     await userController.getAllUsers(req, res);
 
-    expect(db.all).toHaveBeenCalledWith("SELECT id, username FROM users");
+    expect(mockDbInstance.all).toHaveBeenCalledWith(
+      "SELECT id, username FROM users"
+    );
     expect(res.json).toHaveBeenCalledWith(users);
     expect(res.status).not.toHaveBeenCalledWith(404);
   });
 
   it("should return 404 when no users found", async () => {
-    db.all = jest.fn().mockResolvedValue([]);
+    mockDbInstance.all.mockResolvedValue([]);
 
     await userController.getAllUsers(req, res);
 
@@ -61,7 +76,7 @@ describe("getAllUsers", () => {
 
   it("should call genericErrorHandler on db error", async () => {
     const error = new Error("DB error");
-    db.all = jest.fn().mockRejectedValue(error);
+    mockDbInstance.all.mockRejectedValue(error);
 
     await userController.getAllUsers(req, res);
 
@@ -87,11 +102,11 @@ describe("getAllUsers", () => {
     it("should return user when user exists", async () => {
       const user = { id: 1, username: "testuser" };
       req.params = { id: 1 };
-      db.get.mockResolvedValue(user);
+      mockDbInstance.get.mockResolvedValue(user);
 
       await userController.getUserById(req, res);
 
-      expect(db.get).toHaveBeenCalledWith(
+      expect(mockDbInstance.get).toHaveBeenCalledWith(
         "SELECT id, username FROM users WHERE id = ?",
         [1]
       );
@@ -101,11 +116,11 @@ describe("getAllUsers", () => {
 
     it("should return 404 when user not found", async () => {
       req.params = { id: 999 };
-      db.get.mockResolvedValue(undefined);
+      mockDbInstance.get.mockResolvedValue(undefined);
 
       await userController.getUserById(req, res);
 
-      expect(db.get).toHaveBeenCalledWith(
+      expect(mockDbInstance.get).toHaveBeenCalledWith(
         "SELECT id, username FROM users WHERE id = ?",
         [999]
       );
@@ -118,7 +133,7 @@ describe("getAllUsers", () => {
     it("should call genericErrorHandler on db error", async () => {
       const error = new Error("DB error for getUserById");
       req.params = { id: 1 };
-      db.get.mockRejectedValue(error);
+      mockDbInstance.get.mockRejectedValue(error);
 
       await userController.getUserById(req, res);
 
@@ -135,11 +150,11 @@ describe("getAllUsers", () => {
       const username = "newuser";
       req.body = { username };
       const mockResult = { id: 3 };
-      db.run.mockResolvedValue(mockResult);
+      mockDbInstance.run.mockResolvedValue(mockResult);
 
       await userController.createUser(req, res);
 
-      expect(db.run).toHaveBeenCalledWith(
+      expect(mockDbInstance.run).toHaveBeenCalledWith(
         "INSERT INTO users (username) VALUES (?)",
         [username]
       );
@@ -154,7 +169,7 @@ describe("getAllUsers", () => {
     it("should call userErrorHandler on db error", async () => {
       const error = new Error("DB error for createUser");
       req.body = { username: "erroruser" };
-      db.run.mockRejectedValue(error);
+      mockDbInstance.run.mockRejectedValue(error);
 
       await userController.createUser(req, res);
 

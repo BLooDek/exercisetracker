@@ -1,10 +1,11 @@
-const db = require("../database");
+const { getDb } = require("../database");
 const {
   userErrorHandler,
   genericErrorHandler,
 } = require("../data-transformations/handlers");
 
 exports.getAllUsers = (req, res) => {
+  const db = getDb();
   return db
     .all("SELECT id, username FROM users")
     .then((users) =>
@@ -18,6 +19,7 @@ exports.getAllUsers = (req, res) => {
 };
 
 exports.getUserById = (req, res) => {
+  const db = getDb();
   const id = req.params.id;
 
   if (isNaN(id) || parseInt(id) != id) {
@@ -37,6 +39,7 @@ exports.getUserById = (req, res) => {
 };
 
 exports.createUser = (req, res) => {
+  const db = getDb();
   const { username } = req.body;
 
   return db
