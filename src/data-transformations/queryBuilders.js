@@ -1,6 +1,6 @@
-const { isValidYYYYMMDD } = require("../data-transformations/validators");
+const { isValidYYYYMMDD, isNull } = require("./validators");
 
-const buildExerciseLogQuery = (userId, from, to, limit) => {
+const validateExerciseLogQueryParams = (from, to, limit) => {
   const validations = [
     {
       condition: from && !isValidYYYYMMDD(from),
@@ -11,7 +11,8 @@ const buildExerciseLogQuery = (userId, from, to, limit) => {
       message: "Invalid 'to' date format. Use YYYY-MM-DD.",
     },
     {
-      condition: limit && (isNaN(parseInt(limit)) || parseInt(limit) <= 0),
+      condition:
+        !isNull(limit) && (isNaN(parseInt(limit)) || parseInt(limit) <= 0),
       message: "Limit must be a positive integer.",
     },
   ];
@@ -20,6 +21,14 @@ const buildExerciseLogQuery = (userId, from, to, limit) => {
     if (validation.condition) {
       return { status: 400, message: validation.message };
     }
+  }
+  return null;
+};
+
+const buildExerciseLogQuery = (userId, from, to, limit) => {
+  const validationError = validateExerciseLogQueryParams(from, to, limit);
+  if (validationError) {
+    return validationError;
   }
 
   const queryParts = [

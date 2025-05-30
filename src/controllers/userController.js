@@ -3,7 +3,9 @@ const {
   userErrorHandler,
   genericErrorHandler,
 } = require("../data-transformations/handlers");
-const { buildExerciseLogQuery } = require("../utils/queryBuilders");
+const {
+  buildExerciseLogQuery,
+} = require("../data-transformations/queryBuilders");
 
 exports.getAllUsers = (req, res) => {
   const db = getDb();
