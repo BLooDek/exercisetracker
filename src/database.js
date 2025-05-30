@@ -26,6 +26,26 @@ class Database {
             }
           }
         );
+
+        this.db.run(
+          `
+          CREATE TABLE IF NOT EXISTS exercises (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            description TEXT NOT NULL,
+            duration INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+          )
+          `,
+          (err) => {
+            if (err) {
+              console.error("Error creating exercises table", err);
+            } else {
+              console.log("Exercises table created or already exists");
+            }
+          }
+        );
       }
     });
   }
