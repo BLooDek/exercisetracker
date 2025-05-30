@@ -13,4 +13,6 @@ const isValidYYYYMMDD = (value) => {
   );
 };
 
-module.exports = { isValidYYYYMMDD };
+const isNull = (value) => value === null || value === undefined;
+
+module.exports = { isValidYYYYMMDD, isNull };

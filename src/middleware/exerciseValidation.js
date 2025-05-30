@@ -1,19 +1,26 @@
-const { isValidYYYYMMDD } = require("../data-transformations/validators");
+const {
+  isValidYYYYMMDD,
+  isNull,
+} = require("../data-transformations/validators");
 
 const validateDescription = (description) =>
   !description ? "Description is required." : null;
 
 const validateDuration = (duration) => {
-  if (duration === null || duration === undefined) {
+  if (isNull(duration)) {
     return "Duration is required.";
   }
-  if (
-    isNaN(duration) ||
-    parseInt(duration) != duration ||
-    parseInt(duration) <= 0
-  ) {
+
+  const checks = [
+    isNaN(duration),
+    parseInt(duration) != duration,
+    parseInt(duration) <= 0,
+  ];
+
+  if (checks.some((condition) => condition)) {
     return "Duration must be a positive integer.";
   }
+
   return null;
 };
 
@@ -26,24 +33,15 @@ const validateExerciseInput = (req, res, next) => {
   const { description, duration, date } = req.body;
 
   const validationChecks = [
-    {
-      check: () => validateDescription(description),
-      action: (errorMsg) => res.status(400).json({ message: errorMsg }),
-    },
-    {
-      check: () => validateDuration(duration),
-      action: (errorMsg) => res.status(400).json({ message: errorMsg }),
-    },
-    {
-      check: () => validateDate(date),
-      action: (errorMsg) => res.status(400).json({ message: errorMsg }),
-    },
+    () => validateDescription(description),
+    () => validateDuration(duration),
+    () => validateDate(date),
   ];
 
-  for (const validation of validationChecks) {
-    const errorMsg = validation.check();
+  for (const checkFn of validationChecks) {
+    const errorMsg = checkFn();
     if (errorMsg) {
-      return validation.action(errorMsg);
+      return res.status(400).json({ message: errorMsg });
     }
   }
 
