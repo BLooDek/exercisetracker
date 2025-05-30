@@ -29,4 +29,4 @@ const errorCheck = [
 exports.userErrorHandler = (err, res) =>
   errorCheck.find((errorItem) => errorItem.check(err)).action(res, err);
 
-exports.genericErrorHandler;
+exports.genericErrorHandler = genericErrorHandler;
