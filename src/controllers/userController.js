@@ -28,7 +28,8 @@ exports.getUserById = (req, res) => {
 
 exports.createUser = (req, res) => {
   const db = getDb();
-  const { username } = req.body;
+  let { username } = req.body;
+  username = username ? username.trim() : null;
 
   return db
     .run("INSERT INTO users (username) VALUES (?)", [username])
@@ -79,7 +80,7 @@ exports.getExerciseLog = (req, res) => {
       .json({ message: queryResult.message });
   }
 
-  const { query, params } = queryResult;
+  let { query, params } = queryResult;
 
   const countQuery = query.replace(
     "SELECT id, description, duration, date",
