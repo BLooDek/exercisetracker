@@ -40,14 +40,15 @@ const buildExerciseLogQuery = (userId, from, to, limit) => {
     },
     { condition: from, query: " AND date >= ?", param: from },
     { condition: to, query: " AND date <= ?", param: to },
+    { condition: true, query: " ORDER BY date ASC", param: null },
     { condition: limit, query: " LIMIT ?", param: parseInt(limit) },
   ];
 
   const { query, params } = queryParts.reduce(
-    (acc, part) => {
-      if (part.condition) {
-        acc.query += part.query;
-        acc.params.push(part.param);
+    (acc, { query, param, condition }) => {
+      if (condition) {
+        acc.query += query;
+        acc.params = param ? [...acc.params, param] : acc.params;
       }
       return acc;
     },
